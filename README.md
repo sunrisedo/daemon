@@ -1,9 +1,25 @@
-# Web server background framework.
+# This is a daemon in linux.
 
 ### For exmple:
 
+
+build daemon file in window os
 ```
-.\run.bat
+set goos=linux
+go build 
+```
+
+
+Run daemon in linux
+```
+nohup ./daemon &
+```
+
+Run task in daemon. 
+usage: mydaemon [command] [task name]
+command: start | restart | stop | status
+```
+./daemon start taskname
 ```
 
 
@@ -42,37 +58,96 @@ func ServerRoute(w http.ResponseWriter, r *http.Request) {
 ### controller:
 
 ```
+var Tasks = progress.NewTasks()
+
 type Server struct {
 	*Controller
 }
 
-func (c *Server) Index() {
-	c.ResultPage("index")
-}
+func (c *Server) Start() {
+	var ask datas.AskData
+	c.RequestStruct(&ask)
 
-func (c *Server) Login() {
-
-	if c.request.FormValue("acc") != "Admin" || c.request.FormValue("pwd") != "Admin12345" {
-		c.ResultJson(101, "Acc or Pwd error.")
+	if task := Tasks.Get(ask.Key); task != nil {
+		status, err := task.Status()
+		if err != nil {
+			c.ResultJson(105, err.Error())
+			return
+		}
+		c.ResultJson(106, fmt.Sprintf("Task had start, %v", status))
 		return
 	}
-	user := &http.Cookie{
-		Name:    "UID",
-		Value:   "1",
-		Expires: time.Now().Add(20 * time.Minute),
-	}
 
-	http.SetCookie(c.response, user)
-	c.ResultPage("upload")
-}
-
-func (c *Server) User() {
-
-	if v, err := c.request.Cookie("UID"); err != nil || v == nil {
-		c.ResultJson(102, "Please login in.")
+	task := new(progress.Task)
+	if err := task.Init(ask.Key); err != nil {
+		c.ResultJson(101, err.Error())
 		return
 	}
-	c.ResultPage("index")
+	if err := task.Start(); err != nil {
+		c.ResultJson(102, err.Error())
+		return
+	}
+
+	Tasks.Set(ask.Key, task)
+	c.ResultJson(0, "success")
+}
+
+func (c *Server) Restart() {
+	var ask datas.AskData
+	c.RequestStruct(&ask)
+
+	if task := Tasks.Get(ask.Key); task != nil {
+		if err := task.Stop(); err != nil {
+			c.ResultJson(104, err.Error())
+			return
+		}
+	}
+
+	task := new(progress.Task)
+	if err := task.Init(ask.Key); err != nil {
+		c.ResultJson(101, err.Error())
+		return
+	}
+	if err := task.Start(); err != nil {
+		c.ResultJson(102, err.Error())
+		return
+	}
+	Tasks.Set(ask.Key, task)
+	c.ResultJson(0, "success")
+}
+
+func (c *Server) Stop() {
+	var ask datas.AskData
+	c.RequestStruct(&ask)
+	task := Tasks.Get(ask.Key)
+	if task == nil {
+		c.ResultJson(107, fmt.Sprintf("Can not find %s task", ask.Key))
+		return
+	}
+
+	if err := task.Stop(); err != nil {
+		c.ResultJson(104, err.Error())
+		return
+	}
+	Tasks.Set(ask.Key, nil)
+	c.ResultJson(0, "success")
+}
+
+func (c *Server) Status() {
+	var ask datas.AskData
+	c.RequestStruct(&ask)
+	task := Tasks.Get(ask.Key)
+	if task == nil {
+		c.ResultJson(107, fmt.Sprintf("Can not find %s task", ask.Key))
+		return
+	}
+
+	status, err := task.Status()
+	if err != nil {
+		c.ResultJson(105, err.Error())
+		return
+	}
+	c.ResultJson(0, status)
 }
 
 ```

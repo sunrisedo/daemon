@@ -35,7 +35,7 @@ func (c *Client) Listen() error {
 	}
 	cmd, ok := Commands[os.Args[1]]
 	if !ok {
-		return errors.New("Usage: mydaemon install | remove | start | stop | status")
+		return errors.New("Usage: daemon start | restart | stop | status")
 	}
 
 	var obj datas.AskData
