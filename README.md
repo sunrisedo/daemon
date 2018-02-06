@@ -3,20 +3,22 @@
 ### For exmple:
 
 
-build daemon file in window os
+### build daemon file in window os
 ```
 set goos=linux
 go build 
 ```
 
 
-Run daemon in linux
+### Run daemon in linux
 ```
 nohup ./daemon &
 ```
 
-Run task in daemon. 
+### Run task in daemon. 
+
 usage: mydaemon [command] [task name]
+
 command: start | restart | stop | status
 ```
 ./daemon start taskname
